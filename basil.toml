@@ -1,0 +1,5 @@
+
+[dependency]
+lang='cpp'
+qt_version=5.7
+qt_lib=['WebEngineWidgets']
