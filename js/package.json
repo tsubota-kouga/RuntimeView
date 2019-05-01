@@ -13,7 +13,7 @@
   "dependencies": {
     "express": "^4.16.4",
     "latex.js": "^0.11.1",
-    "marked": "^0.5.2",
+    "marked": "^0.6.2",
     "neovim": "^4.2.1"
   }
 }

@@ -18,4 +18,5 @@ If you have dein.vim, you can write in your dein.toml
 ```toml
 [[plugins]]
 repo='tsubota-kouga/RuntimeView'
+build='bash build.sh'
 ```

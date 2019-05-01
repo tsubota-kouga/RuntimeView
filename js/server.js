@@ -11,7 +11,7 @@ let lang = '';
 let html = '';
 let file_change = 'true';
 let nvim;
-let buf;
+let buf = undefined;
 let app = express();
 
 app.get("/", function (req, res) {
@@ -68,4 +68,11 @@ app.get("/", function (req, res) {
     })();
 });
 
-app.listen(3210, 'localhost');
+if(process.argv.listen < 3)
+{
+    console.log("cmd argment is required: port number");
+}
+else
+{
+    app.listen(Number(process.argv[2]), 'localhost');
+}

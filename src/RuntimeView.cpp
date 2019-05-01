@@ -1,28 +1,62 @@
 #include "RuntimeView.hpp"
 
 bool RuntimeView::already_produced = false;
-int RuntimeView::port = 3210;
+int RuntimeView::start_server_port = 3210;
 
 RuntimeView::RuntimeView(Basilico* basil)
-    // :QWidget{},
-     // layout{},
-     // viewer{this},
+    :QWidget{},
+     BasilPlugin{},
+     layout{},
+     viewer{this},
+     toolbar{this}
 {
-    nvim_port = basil->neovim.port;
-    filetype = boost::get<String>(basil->neovim.nvim_eval("&filetype"));
+    server_port = start_server_port;
+    start_server_port += 5;
+    nvim_port = basil->getNeoVim().port;
+    filetype = boost::get<String>(basil->getNeoVim().nvim_eval("&filetype"));
 
-    // layout.addWidget(&(basil->neovim), 0, 0);
-    // layout.addWidget(&viewer, 0, 1);
-    // setLayout(&layout);
+    layout.setContentsMargins(0, 0, 0, 0);
+    layout.addWidget(&toolbar, 0, 1, 1, 1);
+    layout.addWidget(&viewer, 1, 1, 1, 1);
+    setLayout(&layout);
 
-    auto dock = new QDockWidget("RuntimeView", basil);
-    dock->setAllowedAreas(Qt::LeftDockWidgetArea
-            | Qt::RightDockWidgetArea
-            | Qt::TopDockWidgetArea
-            | Qt::BottomDockWidgetArea);
-    setParent(dock);
-    dock->setWidget(this);
-    basil->addDockWidget(Qt::RightDockWidgetArea, dock);
+    settingToolBar(basil);
+}
+
+void RuntimeView::load_runtimeview(bool buffer_change)
+{
+    if(buffer_change)
+    {
+        viewer.load(QUrl(QString::fromStdString(
+                        "http://localhost:" + std::to_string(server_port) +
+                        "?socket=" + nvim_port + "&lang=" + filetype +
+                        "&file_change=true")));
+        allowed_reload = false;
+    }
+    else
+    {
+        viewer.load(QUrl(QString::fromStdString(
+                        "http://localhost:" + std::to_string(server_port) +
+                        "?socket=" + nvim_port + "&lang=" + filetype)));
+    }
+}
+
+void RuntimeView::load_view()
+{
+    if(filetype == "html" or filetype == "xhtml")
+    {
+        viewer.load(QUrl(QString::fromStdString("file://" + absolute_path)));
+    }
+}
+
+void RuntimeView::settingToolBar(Basilico* basil)
+{
+    toolbar.addAction(QApplication::style()->standardIcon(QStyle::SP_TitleBarCloseButton),
+                      "Quit",
+                      [=]{
+                      basil->killPlugin(this);
+                      already_produced = false;
+                      });
 }
 
 std::pair<RuntimeView*, String> RuntimeView::factory(Basilico* basil, Array args)
@@ -34,14 +68,13 @@ std::pair<RuntimeView*, String> RuntimeView::factory(Basilico* basil, Array args
     else
     {
         RuntimeView::already_produced = true;
-        return std::make_pair(new RuntimeView{basil}, "dock");
+        return std::make_pair(new RuntimeView{basil}, "split");
     }
 }
 
 void RuntimeView::execute(Basilico* basil, Array args)
 {
-    auto arg1 = boost::get<String>(args.at(1));
-    filetype = boost::get<String>(args.at(2));
+    auto&& arg1 = boost::get<String>(args.at(1));
     if(arg1 == "Reload")
     {
         mode = Runtime;
@@ -53,6 +86,11 @@ void RuntimeView::execute(Basilico* basil, Array args)
         absolute_path = boost::get<String>(args.at(3));
         load_view();
     }
+    else if(arg1 == "Finish")
+    {
+        basil->killPlugin(this);
+        already_produced = false;
+    }
 }
 
 void RuntimeView::keyPressedExecute(Basilico* basil)
@@ -63,33 +101,28 @@ void RuntimeView::keyPressedExecute(Basilico* basil)
     }
 }
 
-void RuntimeView::load_runtimeview(bool buffer_change)
+void RuntimeView::autocmdExecute(Basilico* basil, String autocmd)
 {
-    if(buffer_change)
+    if(autocmd == "TabEnter")
     {
-        // viewer.load(QUrl(QString::fromStdString(
-        //                 "http://localhost:3210?socket=" + nvim_port + "&lang=" + filetype +
-        //                 "&file_change=true")));
-        load(QUrl(QString::fromStdString(
-                        "http://localhost:3210?socket=" + nvim_port + "&lang=" + filetype +
-                        "&file_change=true")));
-        allowed_reload = false;
+        load_runtimeview(true);
     }
-    else
-    {
-        // viewer.load(QUrl(QString::fromStdString(
-        //                 "http://localhost:3210?socket=" + nvim_port + "&lang=" + filetype)));
-        load(QUrl(QString::fromStdString(
-                        "http://localhost:3210?socket=" + nvim_port + "&lang=" + filetype)));
-    }
-    // port += 5;
 }
 
-void RuntimeView::load_view()
+std::tuple<int, int, int, int> RuntimeView::splitPluginPosition(Basilico* basil, Tabpage tab)
 {
-    if(filetype == "html" or filetype == "xhtml")
+    auto pos_r = 1, pos_c = 2;
+    auto p = basil->getSplitPlugins().equal_range(tab);
+start:
+    for(auto it = p.first;it != p.second;it++)
     {
-        // viewer.load(QUrl(QString::fromStdString("file://" + absolute_path)));
-        load(QUrl(QString::fromStdString("file://" + absolute_path)));
+        auto [_, r, c, w, h] = it->second;
+        if(r == pos_r and pos_c == 2)
+        {
+            pos_c++;
+            goto start; // restart
+        }
     }
+    return std::make_tuple(pos_r, pos_c, 1, 1);
 }
+

@@ -3,13 +3,11 @@
 
 #include <QtWebEngineWidgets>
 
-#include <future>
-
 #include "BasilPlugin.hpp"
 #include "Basilico.hpp"
 class Basilico;
 
-class RuntimeView: public BasilPlugin, public QWebEngineView
+class RuntimeView: public BasilPlugin, public QWidget
 {
     enum JobMode{
         Runtime,
@@ -24,7 +22,13 @@ class RuntimeView: public BasilPlugin, public QWebEngineView
 
     JobMode mode;
     static bool already_produced;
-    static int port;
+    static int start_server_port;
+    int server_port;
+
+    QGridLayout layout;
+    QWebEngineView viewer;
+    QToolBar toolbar;
+
 public:
     RuntimeView(Basilico* basil);
 
@@ -32,12 +36,17 @@ public:
 
     void load_view();
 
+    void settingToolBar(Basilico* basil);
+
     static std::pair<RuntimeView*, String> factory(Basilico* basil, Array args);
 
-protected:
-    void execute(Basilico* basil, Array args) override;
+    virtual void execute(Basilico* basil, Array args) override;
 
-    void keyPressedExecute(Basilico* basil) override;
+    virtual void keyPressedExecute(Basilico* basil) override;
+
+    virtual void autocmdExecute(Basilico* basil, String autocmd) override;
+
+    virtual std::tuple<int, int, int, int> splitPluginPosition(Basilico* basil, Tabpage tab) override;
 
 private:
     bool wait_allowed_reload()
