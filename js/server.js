@@ -2,7 +2,7 @@
 const express = require("express");
 const attach = require('neovim').attach;
 const marked = require('marked');
-const hljs = require('highlight');
+// const hljs = require('highlight');
 // const fs = require('fs');
 // const exec = require('child_process').exec;
 // const latex = require('latex.js');
