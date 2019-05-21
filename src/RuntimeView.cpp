@@ -109,20 +109,3 @@ void RuntimeView::autocmdExecute(Basilico* basil, String autocmd)
     }
 }
 
-std::tuple<int, int, int, int> RuntimeView::splitPluginPosition(Basilico* basil, Tabpage tab)
-{
-    auto pos_r = 1, pos_c = 2;
-    auto p = basil->getSplitPlugins().equal_range(tab);
-start:
-    for(auto it = p.first;it != p.second;it++)
-    {
-        auto [_, r, c, w, h] = it->second;
-        if(r == pos_r and pos_c == 2)
-        {
-            pos_c++;
-            goto start; // restart
-        }
-    }
-    return std::make_tuple(pos_r, pos_c, 1, 1);
-}
-

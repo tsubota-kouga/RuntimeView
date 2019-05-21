@@ -46,8 +46,6 @@ public:
 
     virtual void autocmdExecute(Basilico* basil, String autocmd) override;
 
-    virtual std::tuple<int, int, int, int> splitPluginPosition(Basilico* basil, Tabpage tab) override;
-
 private:
     bool wait_allowed_reload()
     {
